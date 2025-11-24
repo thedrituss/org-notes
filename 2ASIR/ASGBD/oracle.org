@@ -1,0 +1,38 @@
+#+TITLE: Apuntes de Arquitectura y Seguridad Oracle
+#+AUTHOR: [Héctor Moreno Gallego]
+#+STARTUP: show2levels
+
+* Arquitectura de Oracle
+** Instancia vs Base de Datos
+   - *Instancia:* Procesos en memoria + Estructuras de memoria (SGA).
+   - *Base de Datos:* Archivos físicos en disco (Datafiles, Control files).
+** Estructuras de Memoria
+*** SGA (System Global Area)
+    - Shared Pool (Library Cache, Dictionary Cache)
+    - Database Buffer Cache
+    - Redo Log Buffer
+*** PGA (Program Global Area)
+    - Memoria privada para cada proceso servidor.
+** Procesos Background
+   - DBWn (Database Writer): Escribe buffers sucios a disco.
+   - LGWR (Log Writer): Escribe el redo log buffer al disco.
+   - CKPT (Checkpoint): Actualiza cabeceras de datafiles.
+   - PMON y SMON.
+
+* Seguridad en Oracle
+** Autenticación y Usuarios
+   - CREATE USER
+   - Perfiles (Profiles) y límites de recursos.
+** Privilegios y Roles
+   - *System Privileges:* (e.g., CREATE SESSION).
+   - *Object Privileges:* (e.g., SELECT on EMPLOYEES).
+** Encriptación (TDE)
+   - Transparent Data Encryption para tablespaces o columnas.
+** Auditoría
+   - Standard Auditing vs Unified Auditing.
+
+* Snippets de SQL Útiles
+#+begin_src sql
+  -- Verificar estado de la instancia
+  SELECT instance_name, status, version FROM v$instance;
+#+end_src

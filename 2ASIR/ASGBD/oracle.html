@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2025-11-23 dom 22:05 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Apuntes de Arquitectura y Seguridad Oracle</title>
+<meta name="author" content="[Héctor Moreno Gallego]" />
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Apuntes de Arquitectura y Seguridad Oracle</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org33f0692">1. Arquitectura de Oracle</a>
+<ul>
+<li><a href="#orgc8dbc9a">1.1. Instancia vs Base de Datos</a></li>
+<li><a href="#org4cbab1f">1.2. Estructuras de Memoria</a>
+<ul>
+<li><a href="#orge4a239f">1.2.1. SGA (System Global Area)</a></li>
+<li><a href="#org318f9ee">1.2.2. PGA (Program Global Area)</a></li>
+</ul>
+</li>
+<li><a href="#org87e068b">1.3. Procesos Background</a></li>
+</ul>
+</li>
+<li><a href="#org06058e1">2. Seguridad en Oracle</a>
+<ul>
+<li><a href="#org7747516">2.1. Autenticación y Usuarios</a></li>
+<li><a href="#org21dd64d">2.2. Privilegios y Roles</a></li>
+<li><a href="#orgec4db24">2.3. Encriptación (TDE)</a></li>
+<li><a href="#org387c4a2">2.4. Auditoría</a></li>
+</ul>
+</li>
+<li><a href="#org5f69ad3">3. Snippets de SQL Útiles</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org33f0692" class="outline-2">
+<h2 id="org33f0692"><span class="section-number-2">1.</span> Arquitectura de Oracle</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-orgc8dbc9a" class="outline-3">
+<h3 id="orgc8dbc9a"><span class="section-number-3">1.1.</span> Instancia vs Base de Datos</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li><b>Instancia:</b> Procesos en memoria + Estructuras de memoria (SGA).</li>
+<li><b>Base de Datos:</b> Archivos físicos en disco (Datafiles, Control files).</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org4cbab1f" class="outline-3">
+<h3 id="org4cbab1f"><span class="section-number-3">1.2.</span> Estructuras de Memoria</h3>
+<div class="outline-text-3" id="text-1-2">
+</div>
+<div id="outline-container-orge4a239f" class="outline-4">
+<h4 id="orge4a239f"><span class="section-number-4">1.2.1.</span> SGA (System Global Area)</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<ul class="org-ul">
+<li>Shared Pool (Library Cache, Dictionary Cache)</li>
+<li>Database Buffer Cache</li>
+<li>Redo Log Buffer</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org318f9ee" class="outline-4">
+<h4 id="org318f9ee"><span class="section-number-4">1.2.2.</span> PGA (Program Global Area)</h4>
+<div class="outline-text-4" id="text-1-2-2">
+<ul class="org-ul">
+<li>Memoria privada para cada proceso servidor.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-org87e068b" class="outline-3">
+<h3 id="org87e068b"><span class="section-number-3">1.3.</span> Procesos Background</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>DBWn (Database Writer): Escribe buffers sucios a disco.</li>
+<li>LGWR (Log Writer): Escribe el redo log buffer al disco.</li>
+<li>CKPT (Checkpoint): Actualiza cabeceras de datafiles.</li>
+<li>PMON y SMON.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-org06058e1" class="outline-2">
+<h2 id="org06058e1"><span class="section-number-2">2.</span> Seguridad en Oracle</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org7747516" class="outline-3">
+<h3 id="org7747516"><span class="section-number-3">2.1.</span> Autenticación y Usuarios</h3>
+<div class="outline-text-3" id="text-2-1">
+<ul class="org-ul">
+<li>CREATE USER</li>
+<li>Perfiles (Profiles) y límites de recursos.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org21dd64d" class="outline-3">
+<h3 id="org21dd64d"><span class="section-number-3">2.2.</span> Privilegios y Roles</h3>
+<div class="outline-text-3" id="text-2-2">
+<ul class="org-ul">
+<li><b>System Privileges:</b> (e.g., CREATE SESSION).</li>
+<li><b>Object Privileges:</b> (e.g., SELECT on EMPLOYEES).</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgec4db24" class="outline-3">
+<h3 id="orgec4db24"><span class="section-number-3">2.3.</span> Encriptación (TDE)</h3>
+<div class="outline-text-3" id="text-2-3">
+<ul class="org-ul">
+<li>Transparent Data Encryption para tablespaces o columnas.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org387c4a2" class="outline-3">
+<h3 id="org387c4a2"><span class="section-number-3">2.4.</span> Auditoría</h3>
+<div class="outline-text-3" id="text-2-4">
+<ul class="org-ul">
+<li>Standard Auditing vs Unified Auditing.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-org5f69ad3" class="outline-2">
+<h2 id="org5f69ad3"><span class="section-number-2">3.</span> Snippets de SQL Útiles</h2>
+<div class="outline-text-2" id="text-3">
+<div class="org-src-container">
+<pre class="src src-sql">  <span style="color: #5B6268;">-- </span><span style="color: #5B6268;">Verificar estado de la instancia
+</span>  <span style="color: #51afef;">SELECT</span> instance_name, status, version <span style="color: #51afef;">FROM</span> v$<span style="color: #51afef;">instance</span>;
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: [Héctor Moreno Gallego]</p>
+<p class="date">Created: 2025-11-23 dom 22:05</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,158 @@
+#+title:    Práctica de Usuarios y nivel de acceso
+#+author:    Héctor Moreno Gallego
+#+email:     thedrituss@archlinux
+
+
+* Tasks [/]
+* Timeframe
+* Notes
+
+
+** Creación de un tablespace
+
+- Crearemos un tablespace de nombre "PARAOTROS".
+- Con dos ficheros que se guardarán en "/datos/paraotros".
+- El tamaño de cada fichero será como máximo de 100MB.
+
+
+1) Crear tablespace "PARAOTROS"
+
+   - Antes de crear el tablespace, hay que asegurarse de que "/datos/paraotros" exista de antes.
+
+  #+begin_src sql
+    CREATE TABLESPACE PARAOTROS
+    DATAFILE
+    '/datos/paraotros/fichero1.dbf' SIZE 10M AUTOEXTEND ON MAXSIZE 100M,
+    '/datos/paraotros/fichero2.dbf' SIZE 10M AUTOEXTEND ON MAXSIZE 100M;
+  #+end_src
+
+** Crear usuarios
+
+- Crea un usuario para tí, uno para cada uno de tus compañeros, y uno para el profesor. La contraseña inicial será la misma que el nombre (mayúsculas), excepto en tu usuario que debería ser una contraseña secreta:
+
+- Tu propio usuario tendrá como tablespace por defecto USERS, y los demás PARAOTROS.
+  Los usuarios necesitan poder conectarse a la base de datos y crear tablas en su tablespace por defecto.
+  Los usuarios de los otros alumnos tendrán una cuota de 10 MByte en PARAOTROS, y no podrán insertar datos en USERS.
+
+- Para crear los usuarios más rápidamente usaremos emacs:
+
+ #+begin_example
+:%s/\(.*\)/CREATE USER \1 IDENTIFIED BY \1 DEFAULT TABLESPACE PARAOTROS QUOTA 10M ON PARAOTROS;/
+ #+end_example
+Desglose rápido:
+
+   + %s: En todo el archivo.
+
+   + \(.*\): Captura todo el contenido de la línea (el nombre del usuario) en el grupo 1.
+
+   + \1: Pega el contenido del grupo 1 (el nombre) donde lo necesitemos (nombre de usuario y contraseña).
+
+- Para el propio usuario (hectormoreno41):
+
+#+begin_src sql
+CREATE USER HECTORMORENO41 IDENTIFIED BY PASSWD DEFAULT TABLESPACE USERS QUOTA UNLIMITED ON USERS;
+#+end_src
+
+- Asegurate de que tu usuario tenga una contraseña distinta y segura.
+
+ #+begin_src sql
+ALTER USER HECTORMORENO41 IDENTIFIED BY "secure_passwd"
+ #+end_src
+
+- Le damos a los usuarios los permisos necesarios para conectarse a la base de datos y crear las tablas necesarias en su tablespace por defecto.
+
+ #+begin_src sql
+GRANT CREATE SESSION, CREATE TABLE TO hectormoreno41;
+GRANT CREATE SESSION, CREATE TABLE TO demas_usuarios;
+ #+end_src
+
+** Creación de tablas
+
+- Crea un tablespace de nombre "CARRERAS", con un datafile en el directorio "/datos/carreras".
+
+- Con tu propio usuario, crea las tablas en ese tablespace.
+
+  + Utiliza el script carreras-coches.sql para la creación de tablas.
+  + Modifica el script para que tenga en cuenta el nuevo tablespace.
+  + El usuario propio necesitará cuota en ese tablespace.
+
+#+begin_src sql
+CREATE TABLESPACE CARRERAS
+DATAFILE
+'/datos/carreras/carreras1.dbf'
+SIZE 10M
+AUTOEXTEND ON;
+#+end_src
+
+ + Para que se tenga en cuenta el nuevo tablespace, después de cada "CREATE TABLE (...)" , pondremos "TABLESPACE CARRERAS;"
+
+** Dar acceso a otros usuarios a un campo de tablas
+
+- Haz que el resto de usuarios pueda realizar "SELECT" sobre tus tablas.
+
+- Crea sinónimos en todos los usuarios para que puedan acceder a tus tablas sin problemas.
+
+- Por ejemplo, el usuario "alvarogonzalez" debería poder ejecutar:
+ #+begin_src sql
+SELECT * FROM CIRCUITOS;
+ #+end_src
+ Ya que habrás creado un sinónimo del tipo:
+#+begin_src sql
+CREATE PUBLIC SYNONYM CIRCUITOS FOR HECTORMORENO41.CIRCUITOS;
+#+end_src
+
+- Para generar una lista de comandos GRANT SELECT automáticamente, utilizaremos la tabla DBA_USERS (o ALL_USERS) para obtener los nombres de tus compañeros y concatenaremos el texto necesario.
+  La estructura que buscamos es: GRANT SELECT ON TU_TABLA TO NOMBRE_USUARIO;
+  Como tienes varias tablas (COCHES, CARRERAS, etc.), lo ideal es generar permisos para todas ellas. Sin embargo, el ejercicio pide permisos sobre tus tablas en general. Si quieres dar permiso sobre una tabla específica (ej. COCHES), la consulta sería así:
+
+#+begin_src sql
+SELECT 'GRANT SELECT ON COCHES TO ' || username || ';'
+FROM dba_users
+WHERE username NOT IN ('SYS', 'SYSTEM', 'HECTORMORENO41') -- Excluye a usuarios del sistema y a ti mismo
+AND default_tablespace = 'PARAOTROS'; -- Opcional: filtra solo a tus compañeros si todos están ahí
+#+end_src
+Desglose:
+
++ "||": Es el operador de concatenación en Oracle (como el + en otros lenguajes).
+
++ username: La columna que tiene el nombre del compañero.
+
++ WHERE: Filtramos para no darle permisos a usuarios internos de Oracle ni a nosotros mismos.
+
+** PROFESOR con permisos especiales
+
+- Haz un usuario "PROFESOR" con contraseña "PROFESOR" que pueda iniciar sesión y tenga permisos de lectura en las vistas de sistema
+  + DBA_COL_PRIVS
+  + DBA_DATA_FILES
+  + DBA_ROLES
+  + DBA_ROLE_PRIVS
+  + DBA_SYNONYMS
+  + DBA_SYS_PRIVS
+  + DBA_TAB_COLS
+  + DBA_TAB_PRIVS
+  + DBA_TABLES
+  + DBA_TS_QUOTAS
+  + DBA_USERS
+
+- Creamos al usuario "PROFESOR":
+
+ #+begin_src sql
+CREATE USER PROFESOR IDENTIFIED BY PROFESOR;
+GRANT CREATE SESSION TO PROFESOR;
+ #+end_src
+
+- Le damos los permisos necesarios:
+
+ #+begin_src sql
+GRANT SELECT ON DBA_COL_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_DATA_FILES TO PROFESOR;
+GRANT SELECT ON DBA_ROLES TO PROFESOR;
+GRANT SELECT ON DBA_ROLE_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_SYNONYMS TO PROFESOR;
+GRANT SELECT ON DBA_SYS_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_TAB_COLS TO PROFESOR;
+GRANT SELECT ON DBA_TAB_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_TABLES TO PROFESOR;
+GRANT SELECT ON DBA_TS_QUOTAS TO PROFESOR;
+GRANT SELECT ON DBA_USERS TO PROFESOR;
+ #+end_src

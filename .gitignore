@@ -1,0 +1,17 @@
+# Emacs autosaves and backups
+*~
+\#*\#
+.#*
+auto-save-list/
+
+# Org-mode specific
+.org-id-locations
+*_archive
+
+# Export artifacts (optional: remove these lines if you WANT to track PDFs/HTML)
+#*.tex
+#*.pdf
+#*.html
+
+# macOS specific (if applicable)
+.DS_Store

@@ -1,0 +1,217 @@
+% Created 2025-11-24 lun 21:00
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Héctor Moreno Gallego}
+\date{\today}
+\title{Práctica de Usuarios y nivel de acceso}
+\hypersetup{
+ pdfauthor={Héctor Moreno Gallego},
+ pdftitle={Práctica de Usuarios y nivel de acceso},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.2 (Org mode 9.7.34)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Tasks [/]}
+\label{sec:orga37a865}
+\section{Timeframe}
+\label{sec:orgd648d4f}
+\section{Notes}
+\label{sec:org0286ea5}
+
+
+\subsection{Creación de un tablespace}
+\label{sec:org2651e46}
+
+\begin{itemize}
+\item Crearemos un tablespace de nombre ``PARAOTROS''.
+\item Con dos ficheros que se guardarán en ``/datos/paraotros''.
+\item El tamaño de cada fichero será como máximo de 100MB.
+\end{itemize}
+
+
+\begin{enumerate}
+\item Crear tablespace ``PARAOTROS''
+
+\begin{itemize}
+\item Antes de crear el tablespace, hay que asegurarse de que ``/datos/paraotros'' exista de antes.
+\end{itemize}
+
+\begin{verbatim}
+    CREATE TABLESPACE PARAOTROS
+    DATAFILE
+    '/datos/paraotros/fichero1.dbf' SIZE 10M AUTOEXTEND ON MAXSIZE 100M,
+    '/datos/paraotros/fichero2.dbf' SIZE 10M AUTOEXTEND ON MAXSIZE 100M;
+\end{verbatim}
+\end{enumerate}
+\subsection{Crear usuarios}
+\label{sec:orgd5298ca}
+
+\begin{itemize}
+\item Crea un usuario para tí, uno para cada uno de tus compañeros, y uno para el profesor. La contraseña inicial será la misma que el nombre (mayúsculas), excepto en tu usuario que debería ser una contraseña secreta:
+
+\item Tu propio usuario tendrá como tablespace por defecto USERS, y los demás PARAOTROS.
+Los usuarios necesitan poder conectarse a la base de datos y crear tablas en su tablespace por defecto.
+Los usuarios de los otros alumnos tendrán una cuota de 10 MByte en PARAOTROS, y no podrán insertar datos en USERS.
+
+\item Para crear los usuarios más rápidamente usaremos emacs:
+
+\begin{verbatim}
+:%s/\(.*\)/CREATE USER \1 IDENTIFIED BY \1 DEFAULT TABLESPACE PARAOTROS QUOTA 10M ON PARAOTROS;/
+\end{verbatim}
+\end{itemize}
+Desglose rápido:
+
+\begin{itemize}
+\item \%s: En todo el archivo.
+
+\item \(.*\): Captura todo el contenido de la línea (el nombre del usuario) en el grupo 1.
+
+\item $\backslash$1: Pega el contenido del grupo 1 (el nombre) donde lo necesitemos (nombre de usuario y contraseña).
+\end{itemize}
+
+\begin{itemize}
+\item Para el propio usuario (hectormoreno41):
+\end{itemize}
+
+\begin{verbatim}
+CREATE USER HECTORMORENO41 IDENTIFIED BY PASSWD DEFAULT TABLESPACE USERS QUOTA UNLIMITED ON USERS;
+\end{verbatim}
+
+\begin{itemize}
+\item Asegurate de que tu usuario tenga una contraseña distinta y segura.
+
+\begin{verbatim}
+ALTER USER HECTORMORENO41 IDENTIFIED BY "secure_passwd"
+\end{verbatim}
+
+\item Le damos a los usuarios los permisos necesarios para conectarse a la base de datos y crear las tablas necesarias en su tablespace por defecto.
+
+\begin{verbatim}
+GRANT CREATE SESSION, CREATE TABLE TO hectormoreno41;
+GRANT CREATE SESSION, CREATE TABLE TO demas_usuarios;
+\end{verbatim}
+\end{itemize}
+\subsection{Creación de tablas}
+\label{sec:org4e93f32}
+
+\begin{itemize}
+\item Crea un tablespace de nombre ``CARRERAS'', con un datafile en el directorio ``/datos/carreras''.
+
+\item Con tu propio usuario, crea las tablas en ese tablespace.
+
+\begin{itemize}
+\item Utiliza el script carreras-coches.sql para la creación de tablas.
+\item Modifica el script para que tenga en cuenta el nuevo tablespace.
+\item El usuario propio necesitará cuota en ese tablespace.
+\end{itemize}
+\end{itemize}
+
+\begin{verbatim}
+CREATE TABLESPACE CARRERAS
+DATAFILE
+'/datos/carreras/carreras1.dbf'
+SIZE 10M
+AUTOEXTEND ON;
+\end{verbatim}
+
+\begin{itemize}
+\item Para que se tenga en cuenta el nuevo tablespace, después de cada ``CREATE TABLE (\ldots{})'' , pondremos ``TABLESPACE CARRERAS;''
+\end{itemize}
+\subsection{Dar acceso a otros usuarios a un campo de tablas}
+\label{sec:org516f560}
+
+\begin{itemize}
+\item Haz que el resto de usuarios pueda realizar ``SELECT'' sobre tus tablas.
+
+\item Crea sinónimos en todos los usuarios para que puedan acceder a tus tablas sin problemas.
+
+\item Por ejemplo, el usuario ``alvarogonzalez'' debería poder ejecutar:
+\begin{verbatim}
+SELECT * FROM CIRCUITOS;
+\end{verbatim}
+Ya que habrás creado un sinónimo del tipo:
+\end{itemize}
+\begin{verbatim}
+CREATE PUBLIC SYNONYM CIRCUITOS FOR HECTORMORENO41.CIRCUITOS;
+\end{verbatim}
+
+\begin{itemize}
+\item Para generar una lista de comandos GRANT SELECT automáticamente, utilizaremos la tabla DBA\textsubscript{USERS} (o ALL\textsubscript{USERS}) para obtener los nombres de tus compañeros y concatenaremos el texto necesario.
+La estructura que buscamos es: GRANT SELECT ON TU\textsubscript{TABLA} TO NOMBRE\textsubscript{USUARIO};
+Como tienes varias tablas (COCHES, CARRERAS, etc.), lo ideal es generar permisos para todas ellas. Sin embargo, el ejercicio pide permisos sobre tus tablas en general. Si quieres dar permiso sobre una tabla específica (ej. COCHES), la consulta sería así:
+\end{itemize}
+
+\begin{verbatim}
+SELECT 'GRANT SELECT ON COCHES TO ' || username || ';'
+FROM dba_users
+WHERE username NOT IN ('SYS', 'SYSTEM', 'HECTORMORENO41') -- Excluye a usuarios del sistema y a ti mismo
+AND default_tablespace = 'PARAOTROS'; -- Opcional: filtra solo a tus compañeros si todos están ahí
+\end{verbatim}
+Desglose:
+
+\begin{itemize}
+\item ``||'': Es el operador de concatenación en Oracle (como el + en otros lenguajes).
+
+\item username: La columna que tiene el nombre del compañero.
+
+\item WHERE: Filtramos para no darle permisos a usuarios internos de Oracle ni a nosotros mismos.
+\end{itemize}
+\subsection{PROFESOR con permisos especiales}
+\label{sec:org6d9bffa}
+
+\begin{itemize}
+\item Haz un usuario ``PROFESOR'' con contraseña ``PROFESOR'' que pueda iniciar sesión y tenga permisos de lectura en las vistas de sistema
+\begin{itemize}
+\item DBA\textsubscript{COL}\textsubscript{PRIVS}
+\item DBA\textsubscript{DATA}\textsubscript{FILES}
+\item DBA\textsubscript{ROLES}
+\item DBA\textsubscript{ROLE}\textsubscript{PRIVS}
+\item DBA\textsubscript{SYNONYMS}
+\item DBA\textsubscript{SYS}\textsubscript{PRIVS}
+\item DBA\textsubscript{TAB}\textsubscript{COLS}
+\item DBA\textsubscript{TAB}\textsubscript{PRIVS}
+\item DBA\textsubscript{TABLES}
+\item DBA\textsubscript{TS}\textsubscript{QUOTAS}
+\item DBA\textsubscript{USERS}
+\end{itemize}
+
+\item Creamos al usuario ``PROFESOR'':
+
+\begin{verbatim}
+CREATE USER PROFESOR IDENTIFIED BY PROFESOR;
+GRANT CREATE SESSION TO PROFESOR;
+\end{verbatim}
+
+\item Le damos los permisos necesarios:
+
+\begin{verbatim}
+GRANT SELECT ON DBA_COL_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_DATA_FILES TO PROFESOR;
+GRANT SELECT ON DBA_ROLES TO PROFESOR;
+GRANT SELECT ON DBA_ROLE_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_SYNONYMS TO PROFESOR;
+GRANT SELECT ON DBA_SYS_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_TAB_COLS TO PROFESOR;
+GRANT SELECT ON DBA_TAB_PRIVS TO PROFESOR;
+GRANT SELECT ON DBA_TABLES TO PROFESOR;
+GRANT SELECT ON DBA_TS_QUOTAS TO PROFESOR;
+GRANT SELECT ON DBA_USERS TO PROFESOR;
+\end{verbatim}
+\end{itemize}
+\end{document}
