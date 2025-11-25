@@ -36,3 +36,7 @@
   -- Verificar estado de la instancia
   SELECT instance_name, status, version FROM v$instance;
 #+end_src
+
+
+
+

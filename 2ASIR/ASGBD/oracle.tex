@@ -1,4 +1,4 @@
-% Created 2025-11-23 dom 22:59
+% Created 2025-11-25 mar 17:05
 % Intended LaTeX compiler: pdflatex
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
@@ -28,29 +28,29 @@
 \tableofcontents
 
 \section{Arquitectura de Oracle}
-\label{sec:org8fbd2b4}
+\label{sec:orgdcb90bf}
 \subsection{Instancia vs Base de Datos}
-\label{sec:org1028bff}
+\label{sec:org124ca3c}
 \begin{itemize}
 \item \textbf{Instancia:} Procesos en memoria + Estructuras de memoria (SGA).
 \item \textbf{Base de Datos:} Archivos físicos en disco (Datafiles, Control files).
 \end{itemize}
 \subsection{Estructuras de Memoria}
-\label{sec:org9391284}
+\label{sec:org452cf3e}
 \subsubsection{SGA (System Global Area)}
-\label{sec:org02ba8ec}
+\label{sec:orgdbc9309}
 \begin{itemize}
 \item Shared Pool (Library Cache, Dictionary Cache)
 \item Database Buffer Cache
 \item Redo Log Buffer
 \end{itemize}
 \subsubsection{PGA (Program Global Area)}
-\label{sec:org84ec96a}
+\label{sec:orgfba5e62}
 \begin{itemize}
 \item Memoria privada para cada proceso servidor.
 \end{itemize}
 \subsection{Procesos Background}
-\label{sec:org7c61cc8}
+\label{sec:orgade347c}
 \begin{itemize}
 \item DBWn (Database Writer): Escribe buffers sucios a disco.
 \item LGWR (Log Writer): Escribe el redo log buffer al disco.
@@ -58,31 +58,31 @@
 \item PMON y SMON.
 \end{itemize}
 \section{Seguridad en Oracle}
-\label{sec:org8342957}
+\label{sec:orgdd45089}
 \subsection{Autenticación y Usuarios}
-\label{sec:orgc37f6e6}
+\label{sec:orgaed1488}
 \begin{itemize}
 \item CREATE USER
 \item Perfiles (Profiles) y límites de recursos.
 \end{itemize}
 \subsection{Privilegios y Roles}
-\label{sec:org5cc3cff}
+\label{sec:orgdf0d904}
 \begin{itemize}
 \item \textbf{System Privileges:} (e.g., CREATE SESSION).
 \item \textbf{Object Privileges:} (e.g., SELECT on EMPLOYEES).
 \end{itemize}
 \subsection{Encriptación (TDE)}
-\label{sec:org36715db}
+\label{sec:org36f106d}
 \begin{itemize}
 \item Transparent Data Encryption para tablespaces o columnas.
 \end{itemize}
 \subsection{Auditoría}
-\label{sec:orgd858c1a}
+\label{sec:org42d23c1}
 \begin{itemize}
 \item Standard Auditing vs Unified Auditing.
 \end{itemize}
 \section{Snippets de SQL Útiles}
-\label{sec:orgc94606d}
+\label{sec:org5b2d61a}
 \begin{verbatim}
   -- Verificar estado de la instancia
   SELECT instance_name, status, version FROM v$instance;
