@@ -1,0 +1,151 @@
+% Created 2025-11-25 mar 16:59
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Héctor (Sysdba)}
+\date{2025-11-25}
+\title{Guía de Migración con Oracle Data Pump (Expdp/Impdp)}
+\hypersetup{
+ pdfauthor={Héctor (Sysdba)},
+ pdftitle={Guía de Migración con Oracle Data Pump (Expdp/Impdp)},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.2 (Org mode 9.7.34)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+Contexto del Escenario
+
+Héctor: Usuario SYSDBA. Administra permisos.
+
+Pepe: Usuario origen. Tiene las tablas (\texttt{departamento}, \texttt{jefe}). Creará su propio directorio.
+
+Iker: Usuario destino. Recibirá las tablas de Pepe en su propio esquema.
+
+Fase 1: Permisos Iniciales (Héctor - SYSDBA)
+Héctor debe conceder privilegios a Pepe para que pueda manipular directorios del sistema operativo y realizar la exportación.
+
+\begin{verbatim}
+-- Conectado como SYSDBA
+-- 1. Permisos de conexión y almacenamiento para Pepe
+GRANT CREATE SESSION TO pepe;
+GRANT RESOURCE TO pepe; -- Incluye CREATE TABLE, etc.
+ALTER USER pepe QUOTA UNLIMITED ON users;
+
+-- 2. Permiso CRÍTICO para que Pepe cree el objeto DIRECTORY
+GRANT CREATE ANY DIRECTORY TO pepe;
+
+-- 3. Permisos de Data Pump (Opcional si solo es Schema export, pero recomendado)
+GRANT EXP_FULL_DATABASE TO pepe;
+\end{verbatim}
+
+Fase 2: Exportación de Datos (Pepe)
+\section{2.1 Creación del Directorio}
+\label{sec:org6f0e03c}
+Pepe define dónde se guardarán físicamente los archivos en el servidor.
+\emph{Nota: La ruta 'C:\backups' debe existir previamente en el sistema de archivos.}
+
+\begin{verbatim}
+-- Conectado como PEPE
+CREATE OR REPLACE DIRECTORY dir_pepe AS 'C:\backups';
+-- Al ser el creador, Pepe tiene automáticamente permisos de lectura/escritura.
+\end{verbatim}
+\section{2.2 Creación del Parfile (exportar.par)}
+\label{sec:orgde23a96}
+Pepe configura los parámetros de la exportación en un archivo de texto.
+
+\begin{verbatim}
+DIRECTORY=dir_pepe
+DUMPFILE=pepe_schema.dmp
+LOGFILE=pepe_exp.log
+SCHEMAS=PEPE
+
+Opcional: Para excluir estadísticas si hay versiones incompatibles
+
+EXCLUDE=STATISTICS
+
+\end{verbatim}
+\section{2.3 Ejecución del comando}
+\label{sec:org133d7e3}
+Comando a ejecutar en la terminal del sistema operativo.
+
+\begin{verbatim}
+expdp pepe/password PARFILE=exportar.par
+\end{verbatim}
+
+Fase 3: Preparación del Destino (Héctor - SYSDBA)
+Antes de que Iker pueda importar, debe existir y tener acceso al archivo generado por Pepe.
+
+\begin{verbatim}
+-- Conectado como SYSDBA
+
+-- 1. Crear al usuario Iker
+CREATE USER iker IDENTIFIED BY password_iker;
+
+-- 2. Permisos básicos para Iker
+GRANT CREATE SESSION TO iker;
+GRANT RESOURCE TO iker;
+GRANT UNLIMITED TABLESPACE TO iker;
+
+-- 3. Dar acceso a Iker al directorio creado por Pepe
+-- Es necesario para que Iker pueda leer el archivo .dmp
+GRANT READ, WRITE ON DIRECTORY dir_pepe TO iker;
+
+-- 4. Permisos de Importación (Opcional pero recomendado)
+GRANT IMP_FULL_DATABASE TO iker;
+\end{verbatim}
+
+Fase 4: Importación de Datos (Iker)
+Iker toma el archivo de Pepe y lo vuelca en su propio esquema usando \texttt{REMAP\_SCHEMA}.
+\section{4.1 Creación del Parfile (importar\textsubscript{iker.par})}
+\label{sec:org7c68eab}
+Configuración clave: remapeo de esquema y acción si existen tablas.
+
+\begin{verbatim}
+DIRECTORY=dir_pepe
+DUMPFILE=pepe_schema.dmp
+LOGFILE=iker_imp.log
+
+Mapeo: Origen(Pepe) -> Destino(Iker)
+
+REMAP_SCHEMA=PEPE:IKER
+
+Opcional: Si los tablespaces son diferentes (ej. USERS -> TBS_IKER)
+
+REMAP_TABLESPACE=users:tbs_iker
+
+TABLE_EXISTS_ACTION=REPLACE
+\end{verbatim}
+\section{4.2 Ejecución del comando}
+\label{sec:org7bfa72d}
+Comando a ejecutar en la terminal por Iker.
+
+\begin{verbatim}
+impdp iker/password_iker PARFILE=importar_iker.par
+\end{verbatim}
+
+Verificación
+Consultas SQL para validar que Iker tiene los datos.
+
+\begin{verbatim}
+-- Conectado como IKER
+SELECT table_name FROM user_tables;
+-- Debería mostrar: DEPARTAMENTO, JEFE
+
+SELECT count() FROM departamento;
+SELECT count() FROM jefe;
+\end{verbatim}
+\end{document}

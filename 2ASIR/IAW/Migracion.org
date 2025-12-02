@@ -1,0 +1,216 @@
+#+title: Migracion
+
+
+* Migración Wordpress
+
+** Primeros Pasos
+
+1) Revisamos usuarios mysql
+
+  #+begin_src bash
+sudo mariadbysql -u root
+  #+end_src
+
+ #+begin_src sql
+SELECT User, Host, Password, is_role FROM mysql.user;
+ #+end_src
+
+
+2) Cambiamos passwords
+
+   #+begin_src sql
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'passwd';
+FLUSH PRIVILEGES;
+   #+end_src
+
+
+3) Vemos los usuarios que hay
+
+   #+begin_src sql
+SELECT User, Host, Password, is_role FROM mysql.user;
+   #+end_src
+
+
+** Wordpress a Debian 13
+
+1) Primero necesitamos el sql de la base de datos a migrar
+
+  #+begin_src bash
+
+mysqldump -h HOST_DB -u USUARIO_DB -p NOMBRE_DB > dump.sql
+
+# opcional --no-tablespaces
+
+  #+end_src
+
+2) Ahora es necesario modificar el sql
+
+   - Será bueno hacer un backup del sql original
+
+  #+begin_src bash
+VIEJO="dominio_antiguo"
+NUEVO="dominio_nuevo"
+
+sed -i "s/$VIEJO/$NUEVO/g" dump.sql
+sed -i '/^USE /d' dump.sql
+sed -i '/^CREATE DATABASE /d' dump.sql
+  #+end_src
+
+3) Creamos directorios para la migración
+
+  #+begin_src bash
+mkdir -p /var/www/html/directorio
+  #+end_src
+
+4) Copiamos los archivos y les damos los permisos necesarios
+
+  #+begin_src bash
+
+# Copiamos el dump de la base de datos
+scp user@host:/ruta/dump.sql /ruta/nueva/
+
+# Copiamos wordpress entero
+scp user@host:/ruta /var/www/html/directorio
+
+sudo chown -R www-data:www-data /var/www/html/directorio
+chmod -R 755 /var/www/html/directorio
+  #+end_src
+
+5) Creamos la base de datos y usuarios con permisos necesarios
+
+  #+begin_src bash
+sudo mariadb -u root -p
+  #+end_src
+
+  #+begin_src sql
+CREATE DATABASE nueva_db;
+CREATE USER 'nuevo_user'@'localhost' IDENTIFIED BY 'passwd';
+
+GRANT ALL PRIVILEGES ON nueva_db.* TO 'nuevo_user'@'localhost';
+FLUSH PRIVILEGES;
+  #+end_src
+
+ - Importamos la base de datos a la nueva es importante que el sql esté modificado con los dominios nuevos
+
+  #+begin_src bash
+mysql -u nuevo_user -p nueva_db < dump.sql
+  #+end_src
+
+ - Comprobamos que existan las tablas, dentro de mariadb
+
+  #+begin_src sql
+USE nueva_db;
+SHOW TABLES;
+  #+end_src
+
+6) Ahora hay que conectar la base de datos al wordpress
+
+   - Hay que actualizar el archivo wp-config.php
+
+   #+begin_src php
+define( 'DB_NAME', 'nueva_db' );
+define( 'DB_USER', 'nuevo_user' );
+define( 'DB_PASSWORD', 'passwd' );
+define( 'DB_HOST', 'localhost' );
+   #+end_src
+
+7) Modificamos el archivo .htaccess
+
+   - Podemos entrar al administrador de wordpress, en wp-admin.
+     - Entrar en Ajustes → Enlaces Permanentes
+     - Guardar cambios (2 veces)
+
+   - Manualmente:
+
+    #+begin_src
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /picante/
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /picante/index.php [L]
+</IfModule>
+# END WordPress
+    #+end_src
+
+      #+begin_quote
+   /picante/ es la ruta donde está instalado el wordpress sería /var/www/html/picante/
+      #+end_quote
+
+8) Activar mod_rewrite
+
+   - Habilitamos el módulo de reescritura de URLs de Apache
+
+    #+begin_src bash
+sudo a2enmod rewrite
+
+sudo systemctl restart apache2
+    #+end_src
+
+9) Allow override All en el directory de Apache
+
+   - Hay que permitir que Apache lea tu fichero .htaccess
+
+   - Editamos /etc/apache2/sites-available/000-default.conf
+
+     + Añadimos el bloque <Directory> dentro de <VirtualHost *:80>
+
+     #+begin_src
+# ... otras configuraciones ...
+DocumentRoot /var/www/html
+# AÑADE ESTE BLOQUE:
+    <Directory /var/www/html/mi-web>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+     #+end_src
+
+   - Ejemplo:
+    #+begin_src
+<VirtualHost *:80>
+	# The ServerName directive sets the request scheme, hostname and port that
+	# the server uses to identify itself. This is used when creating
+	# redirection URLs. In the context of virtual hosts, the ServerName
+	# specifies what hostname must appear in the request's Host: header to
+	# match this virtual host. For the default virtual host (this file) this
+	# value is not decisive as it is used as a last resort host regardless.
+	# However, you must set it for any further virtual host explicitly.
+	#ServerName www.example.com
+
+	ServerAdmin webmaster@localhost
+	DocumentRoot /var/www/html
+
+	# Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+	# error, crit, alert, emerg.
+	# It is also possible to configure the loglevel for particular
+	# modules, e.g.
+	#LogLevel info ssl:warn
+
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+	# For most configuration files from conf-available/, which are
+	# enabled or disabled at a global level, it is possible to
+	# include a line for only one particular virtual host. For example the
+	# following line enables the CGI configuration for this host only
+	# after it has been globally disabled with "a2disconf".
+	#Include conf-available/serve-cgi-bin.conf
+	<Directory /var/www/html/picante>
+		Options Indexes FollowSymLinks
+		AllowOverride All
+		Require all granted
+	</Directory>
+
+</VirtualHost>
+
+
+    #+end_src
+
+10) Reiniciar
+
+   #+begin_src bash
+sudo systemctl restart apache2
+   #+end_src

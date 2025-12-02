@@ -1,0 +1,267 @@
+% Created 2025-12-02 mar 23:29
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\date{\today}
+\title{Migracion}
+\hypersetup{
+ pdfauthor={},
+ pdftitle={Migracion},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.2 (Org mode 9.7.34)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Migración Wordpress}
+\label{sec:org134793f}
+
+\subsection{Primeros Pasos}
+\label{sec:org5bbb830}
+
+\begin{enumerate}
+\item Revisamos usuarios mysql
+
+\begin{verbatim}
+sudo mariadbysql -u root
+\end{verbatim}
+
+\begin{verbatim}
+SELECT User, Host, Password, is_role FROM mysql.user;
+\end{verbatim}
+\end{enumerate}
+
+
+\begin{enumerate}
+\item Cambiamos passwords
+
+\begin{verbatim}
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'passwd';
+FLUSH PRIVILEGES;
+\end{verbatim}
+\end{enumerate}
+
+
+\begin{enumerate}
+\item Vemos los usuarios que hay
+
+\begin{verbatim}
+SELECT User, Host, Password, is_role FROM mysql.user;
+\end{verbatim}
+\end{enumerate}
+\subsection{Wordpress a Debian 13}
+\label{sec:org989110c}
+
+\begin{enumerate}
+\item Primero necesitamos el sql de la base de datos a migrar
+
+\begin{verbatim}
+
+mysqldump -h HOST_DB -u USUARIO_DB -p NOMBRE_DB > dump.sql
+
+# opcional --no-tablespaces
+
+\end{verbatim}
+
+\item Ahora es necesario modificar el sql
+
+\begin{itemize}
+\item Será bueno hacer un backup del sql original
+\end{itemize}
+
+\begin{verbatim}
+VIEJO="dominio_antiguo"
+NUEVO="dominio_nuevo"
+
+sed -i "s/$VIEJO/$NUEVO/g" dump.sql
+sed -i '/^USE /d' dump.sql
+sed -i '/^CREATE DATABASE /d' dump.sql
+\end{verbatim}
+
+\item Creamos directorios para la migración
+
+\begin{verbatim}
+mkdir -p /var/www/html/directorio
+\end{verbatim}
+
+\item Copiamos los archivos y les damos los permisos necesarios
+
+\begin{verbatim}
+
+# Copiamos el dump de la base de datos
+scp user@host:/ruta/dump.sql /ruta/nueva/
+
+# Copiamos wordpress entero
+scp user@host:/ruta /var/www/html/directorio
+
+sudo chown -R www-data:www-data /var/www/html/directorio
+chmod -R 755 /var/www/html/directorio
+\end{verbatim}
+
+\item Creamos la base de datos y usuarios con permisos necesarios
+
+\begin{verbatim}
+sudo mariadb -u root -p
+\end{verbatim}
+
+\begin{verbatim}
+CREATE DATABASE nueva_db;
+CREATE USER 'nuevo_user'@'localhost' IDENTIFIED BY 'passwd';
+
+GRANT ALL PRIVILEGES ON nueva_db.* TO 'nuevo_user'@'localhost';
+FLUSH PRIVILEGES;
+\end{verbatim}
+
+\begin{itemize}
+\item Importamos la base de datos a la nueva es importante que el sql esté modificado con los dominios nuevos
+
+\begin{verbatim}
+mysql -u nuevo_user -p nueva_db < dump.sql
+\end{verbatim}
+
+\item Comprobamos que existan las tablas, dentro de mariadb
+
+\begin{verbatim}
+USE nueva_db;
+SHOW TABLES;
+\end{verbatim}
+\end{itemize}
+
+\item Ahora hay que conectar la base de datos al wordpress
+
+\begin{itemize}
+\item Hay que actualizar el archivo wp-config.php
+\end{itemize}
+
+\begin{verbatim}
+define( 'DB_NAME', 'nueva_db' );
+define( 'DB_USER', 'nuevo_user' );
+define( 'DB_PASSWORD', 'passwd' );
+define( 'DB_HOST', 'localhost' );
+\end{verbatim}
+
+\item Modificamos el archivo .htaccess
+
+\begin{itemize}
+\item Podemos entrar al administrador de wordpress, en wp-admin.
+\begin{itemize}
+\item Entrar en Ajustes → Enlaces Permanentes
+\item Guardar cambios (2 veces)
+\end{itemize}
+
+\item Manualmente:
+
+\begin{verbatim}
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /picante/
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /picante/index.php [L]
+</IfModule>
+# END WordPress
+\end{verbatim}
+
+\begin{quote}
+\emph{picante} es la ruta donde está instalado el wordpress sería \emph{var/www/html/picante}
+\end{quote}
+\end{itemize}
+
+\item Activar mod\textsubscript{rewrite}
+
+\begin{itemize}
+\item Habilitamos el módulo de reescritura de URLs de Apache
+
+\begin{verbatim}
+sudo a2enmod rewrite
+
+sudo systemctl restart apache2
+\end{verbatim}
+\end{itemize}
+
+\item Allow override All en el directory de Apache
+
+\begin{itemize}
+\item Hay que permitir que Apache lea tu fichero .htaccess
+
+\item Editamos /etc/apache2/sites-available/000-default.conf
+
+\begin{itemize}
+\item Añadimos el bloque <Directory> dentro de <VirtualHost *:80>
+\end{itemize}
+
+\begin{verbatim}
+# ... otras configuraciones ...
+DocumentRoot /var/www/html
+# AÑADE ESTE BLOQUE:
+    <Directory /var/www/html/mi-web>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+\end{verbatim}
+
+\item Ejemplo:
+\begin{verbatim}
+<VirtualHost *:80>
+	# The ServerName directive sets the request scheme, hostname and port that
+	# the server uses to identify itself. This is used when creating
+	# redirection URLs. In the context of virtual hosts, the ServerName
+	# specifies what hostname must appear in the request's Host: header to
+	# match this virtual host. For the default virtual host (this file) this
+	# value is not decisive as it is used as a last resort host regardless.
+	# However, you must set it for any further virtual host explicitly.
+	#ServerName www.example.com
+
+	ServerAdmin webmaster@localhost
+	DocumentRoot /var/www/html
+
+	# Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+	# error, crit, alert, emerg.
+	# It is also possible to configure the loglevel for particular
+	# modules, e.g.
+	#LogLevel info ssl:warn
+
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+	# For most configuration files from conf-available/, which are
+	# enabled or disabled at a global level, it is possible to
+	# include a line for only one particular virtual host. For example the
+	# following line enables the CGI configuration for this host only
+	# after it has been globally disabled with "a2disconf".
+	#Include conf-available/serve-cgi-bin.conf
+	<Directory /var/www/html/picante>
+		Options Indexes FollowSymLinks
+		AllowOverride All
+		Require all granted
+	</Directory>
+
+</VirtualHost>
+
+
+\end{verbatim}
+\end{itemize}
+
+\item Reiniciar
+
+\begin{verbatim}
+sudo systemctl restart apache2
+\end{verbatim}
+\end{enumerate}
+\end{document}
